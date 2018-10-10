@@ -8,6 +8,7 @@ import iothub_client
 from iothub_client import IoTHubClient, IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult
 from iothub_client import IoTHubMessage, IoTHubMessageDispositionResult, IoTHubError, DeviceMethodReturnValue
 
+from speakrec import identify_auth
 
 #OBD CODE=================================================================
 connection = obd.Async(fast=False)
@@ -22,14 +23,22 @@ msgobdct=0.0
 
 filetime=time.strftime("%Y%m%d-%H%M%S")
 
-f=open("rawtxtday" + filetime + ".txt","w")
+pathraw = os.getcwd()
 
-##def getRPM_voice():
-##    connection = obd.OBD()
-##    response = connection.query(obd.commands.RPM)
-##    ignition(str(response.value.magnitude))
-##
-##getRPM_voice()
+file1 = os.path.join(pathraw, '/rawlogs/rawtxtday' + filetime + '.txt')
+
+print(file1)
+
+#f=open("rawlogs\rawtxtday" + filetime + ".txt","w")
+
+f=open(file1, "w")
+
+def getRPM_voice():
+    connection = obd.OBD()
+    response = connection.query(obd.commands.RPM)
+    #ignition(str(response.value.magnitude))
+    if (response > 0):
+            identify_auth(str(response.value.magnitude))
 
 # a callback that prints every new value to the console
 def new_rpm(r):
@@ -65,7 +74,6 @@ def new_coolanttemp(ct):
         f.write(str(ct.value.magnitude)+",\n")
         #print ("-----" + msgobd)
 
-#getRPM_voice()
 connection.watch(obd.commands.RPM, callback=new_rpm)
 connection.watch(obd.commands.SPEED, callback=new_speed)
 connection.watch(obd.commands.ENGINE_LOAD, callback=new_engineload)
@@ -150,5 +158,6 @@ def iothub_client_telemetry_sample_run():
 if __name__ == '__main__':
     print ( "IoT Hub take #1 - OBD Code to IoT Hub " )
     print ( "Press Ctrl-C to exit" )
+    getRPM_voice()
     iothub_client_telemetry_sample_run()
     

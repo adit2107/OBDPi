@@ -1,8 +1,10 @@
 #!/usr/bin/python3
+#sudo apt-get install gpsd gpsd-clients
+#pip3 install gpsd-py3
 import gpsd
 import os
 import time
-os.system("sudo gpsd /dev/ttyUSB0 -F /var/run/gpsd.sock")
+os.system("sudo gpsd /dev/ttyUSB1 -F /var/run/gpsd.sock")
 gpsd.connect()
 
 while True:

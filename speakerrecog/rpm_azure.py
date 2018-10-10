@@ -107,7 +107,7 @@ connection.start()
 # The device connection string to authenticate the device with your IoT hub.
 # Using the Azure CLI:
 # az iot hub device-identity show-connection-string --hub-name {YourIoTHubName} --device-id MyNodeDevice --output table
-CONNECTION_STRING = "HostName=iothubtest1234.azure-devices.net;DeviceId=device7af811de3cfb46339fd30b71d9157e70;SharedAccessKey=Qu93Fq6f/iMywGIedqJC8cThKnoYyAOEtV4IDHC/QIg="
+CONNECTION_STRING = "HostName=boschobdhub.azure-devices.net;DeviceId=obdpi;SharedAccessKey=rkdJN3BcOLskpU+Kc6KhPeIW/7n9eF+1Td1nzRp1GC0="
 
 # Using the MQTT protocol.
 PROTOCOL = IoTHubTransportProvider.MQTT
