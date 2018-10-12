@@ -8,12 +8,14 @@ import iothub_client
 from iothub_client import IoTHubClient, IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult
 from iothub_client import IoTHubMessage, IoTHubMessageDispositionResult, IoTHubError, DeviceMethodReturnValue
 
-from speakrec import identify_auth
+import speakrec
 
 #OBD CODE=================================================================
 connection = obd.Async(fast=False)
 cr=0
 cs=0
+
+check = False
 
 msgobdrpm=0.0
 msgobdspeed=0.0
@@ -25,62 +27,83 @@ filetime=time.strftime("%Y%m%d-%H%M%S")
 
 f=open("rawtxtday" + filetime + ".txt","w")
 
-##def getRPM_voice():
-    #connection = obd.OBD()
-    #response = connection.query(obd.commands.RPM)
-    #ignition(str(response.value.magnitude))
-    #rpmresp = response.value.magnitude
-    #if (rpmresp > 0):
-    #identify_auth(str(response.value.magnitude))
-
-# a callback that prints every new value to the console
 def new_rpm(r):
-##        if r.value is None:
-##            os.system("python3 /home/pi/Desktop/OBDvoice_1/speakerrecog/rpm_azure.py")
         global msgobdrpm
-        print ("RPM : " + str(r.value.magnitude))
-        msgobdrpm = r.value.magnitude
-##        if (msgobdrpm > 500.0 and msgobdrpm < 655.0):
-##            print("ID STARTED")
-##            identify_auth()
-        f.write(str(r.value.magnitude)+", ")
+        global check
+        try:
+                print ("RPM : " + str(r.value.magnitude))
+                msgobdrpm = r.value.magnitude
+                f.write(str(r.value.magnitude)+", ")
+                if (msgobdrpm >= 0.0):
+                        check = True
+                        print("----------------" + str(check))
+                        return check
+        except AttributeError:
+                speakrec.speak("Connect to car source and start the car")
+                check = False
+                f.close()
+        
+        
+        
+            
 
 def new_speed(s):
 ##        if s.value is None:
 ##                os.system("python3 /home/pi/Desktop/OBDvoice_1/speakerrecog/rpm_azure.py")
         global msgobdspeed
-        print ("SPEED : " + str(s.value.magnitude))
-        msgobdspeed= s.value.magnitude
-        f.write(str(s.value.magnitude)+", ")
+        try:
+                print ("SPEED : " + str(s.value.magnitude))
+                msgobdspeed= s.value.magnitude
+                f.write(str(s.value.magnitude)+", ")
+        except AttributeError:
+                print("No Speed")
+                check = False
+                
+        
 	
 	
 def new_engineload(el):
 ##        if el.value is None:
 ##            os.system("python3 /home/pi/Desktop/OBDvoice_1/speakerrecog/rpm_azure.py")
         global msgobdel
-        print ("ENGINE LOAD : " + str(el.value.magnitude))
-        msgobdel= el.value.magnitude
+        try:
+                print ("ENGINE LOAD : " + str(el.value.magnitude))
+                msgobdel= el.value.magnitude
+                f.write(str(el.value.magnitude)+", ")
+        except AttributeError:
+                print("No Engine Load")
+                check = False
 ##        if (msgobdel == 0.0):
 ##            f.close()
 ##        else:
-        f.write(str(el.value.magnitude)+", ")
+        
         
 def new_thortleposition(tp):
 ##        if tp.value is None:
 ##            os.system("python3 /home/pi/Desktop/OBDvoice_1/speakerrecog/rpm_azure.py")
         global msgobdtp
-        print  ("THROTTLE POSITION : " + str(tp.value.magnitude))
-        msgobdtp= tp.value.magnitude
-        f.write(str(tp.value.magnitude)+", ")
+        try:
+                print  ("THROTTLE POSITION : " + str(tp.value.magnitude))
+                msgobdtp= tp.value.magnitude
+                f.write(str(tp.value.magnitude)+", ")
+        except:
+                print("No Throttle")
+                check = False
+        
 	
 	
 def new_coolanttemp(ct):
 ##        if ct.value is None:
 ##            os.system("python3 /home/pi/Desktop/OBDvoice_1/speakerrecog/rpm_azure.py")
         global msgobdct
-        print  ("COOLANT TEMP : " + str(ct.value.magnitude))
-        msgobdct= ct.value.magnitude
-        f.write(str(ct.value.magnitude)+",\n")
+        try:
+                print  ("COOLANT TEMP : " + str(ct.value.magnitude))
+                msgobdct= ct.value.magnitude
+                f.write(str(ct.value.magnitude)+",\n")
+        except AttributeError:
+                print("No Coolant")
+                check = False
+        
         #print ("-----" + msgobd)
 
 connection.watch(obd.commands.RPM, callback=new_rpm)
@@ -107,7 +130,7 @@ connection.start()
 # The device connection string to authenticate the device with your IoT hub.
 # Using the Azure CLI:
 # az iot hub device-identity show-connection-string --hub-name {YourIoTHubName} --device-id MyNodeDevice --output table
-CONNECTION_STRING = "HostName=boschobdhub.azure-devices.net;DeviceId=obdpi;SharedAccessKey=rkdJN3BcOLskpU+Kc6KhPeIW/7n9eF+1Td1nzRp1GC0="
+CONNECTION_STRING = "HostName=boschhub.azure-devices.net;DeviceId=obdpi;SharedAccessKey=2nGPUDluBDTCoGBADG4CEPzqfsW/gJzy4a5gm41DDVA="
 
 # Using the MQTT protocol.
 PROTOCOL = IoTHubTransportProvider.MQTT
@@ -133,7 +156,10 @@ def iothub_client_telemetry_sample_run():
     global msgobdel
     global msgobdtp
     global msgobdct
+    global check
+    
     try:
+
         client = iothub_client_init()
         print ( "IoT Hub device sending periodic messages, press Ctrl-C to exit" )
 
@@ -167,6 +193,10 @@ def iothub_client_telemetry_sample_run():
 if __name__ == '__main__':
     print ( "IoT Hub take #1 - OBD Code to IoT Hub " )
     print ( "Press Ctrl-C to exit" )
+    print ("main" + str(check))
     ##getRPM_voice()
+    if (msgobdrpm >= 0.0):
+            print("ID STARTED")
+            speakrec.identify_auth()
     iothub_client_telemetry_sample_run()
     
