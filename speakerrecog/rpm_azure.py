@@ -9,6 +9,9 @@ from iothub_client import IoTHubClient, IoTHubClientError, IoTHubTransportProvid
 from iothub_client import IoTHubMessage, IoTHubMessageDispositionResult, IoTHubError, DeviceMethodReturnValue
 
 import speakrec
+import socket
+import json
+import ast
 
 #OBD CODE=================================================================
 connection = obd.Async(fast=False)
@@ -139,7 +142,8 @@ MESSAGE_TIMEOUT = 10000
 # Define the JSON message to send to IoT Hub.
 #TEMPERATURE = 20.0
 #HUMIDITY = 60
-MSG_TXT = "{\"RPM\": %f,\"Speed\": %f,\"Engine_load\": %f,\"Throttle_position\": %f,\"Coolant_temp\": %f}"
+MSG_TXT = "{\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r,\"Az\": %r,\"Ax\": %r,\"Ay\": %r,\"LO\": %r,\"LA\": %r,\"Total acceleration\": %r,\"Heading\": %r}"
+#MSG_TXT = "{\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r}"
 
 def send_confirmation_callback(message, result, user_context):
     print ( "IoT Hub responded to message with status: %s" % (result) )
@@ -162,12 +166,29 @@ def iothub_client_telemetry_sample_run():
 
         client = iothub_client_init()
         print ( "IoT Hub device sending periodic messages, press Ctrl-C to exit" )
+        #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while True:
             # Build the message with simulated telemetry values.
             #temperature = TEMPERATURE + (random.random() * 15)
             #humidity = HUMIDITY + (random.random() * 20)
-            msg_txt_formatted = MSG_TXT % (msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct)
+            #host = socket.gethostname()
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            host = "192.168.1.106"
+            port = 9997
+            s.connect((host, port))
+            tm = s.recv(1024)
+            print("The time got from the server is %s" % tm.decode('utf-8'))
+            gps = tm.decode('utf-8')
+            gpsjson = gps.replace("'","\"")
+            data1 = ast.literal_eval(gps)
+            #data2 = json.loads(gps)
+            #Az = data1['Az']
+            print("*****************")
+
+            #IoT Hub Code
+            msg_txt_formatted = MSG_TXT % (msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct, data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Heading'])
+            #data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Time'], data1['Heading'])
             message = IoTHubMessage(msg_txt_formatted)
 
             # Add a custom application property to the message.
@@ -182,6 +203,7 @@ def iothub_client_telemetry_sample_run():
             print( "Sending message: %s" % message.get_string() )
             client.send_event_async(message, send_confirmation_callback, None)
             time.sleep(1)
+            s.close()
 
     except IoTHubError as iothub_error:
         print ( "Unexpected error %s from IoTHub" % iothub_error )
@@ -189,6 +211,8 @@ def iothub_client_telemetry_sample_run():
     except KeyboardInterrupt:
         print ( "IoTHubClient sample stopped" )
         f.close()
+    except Exception as ex:
+        print("GPS signal issue" + str(ex))
 
 if __name__ == '__main__':
     print ( "IoT Hub take #1 - OBD Code to IoT Hub " )
@@ -197,6 +221,6 @@ if __name__ == '__main__':
     ##getRPM_voice()
     if (msgobdrpm >= 0.0):
             print("ID STARTED")
-            speakrec.identify_auth()
+            #speakrec.identify_auth()
     iothub_client_telemetry_sample_run()
     
