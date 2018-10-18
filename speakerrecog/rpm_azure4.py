@@ -13,7 +13,16 @@ import socket
 import json
 import ast
 
+import RPi.GPIO as GPIO
+
+
 #OBD CODE=================================================================
+
+buttonPin = 22
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(buttonPin,GPIO.IN)
+flag = False
+
 connection = obd.Async(fast=False)
 cr=0
 cs=0
@@ -169,41 +178,44 @@ def iothub_client_telemetry_sample_run():
         #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while True:
-            # Build the message with simulated telemetry values.
-            #temperature = TEMPERATURE + (random.random() * 15)
-            #humidity = HUMIDITY + (random.random() * 20)
-            #host = socket.gethostname()
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            host = "192.168.1.101"
-            port = 9991
-            s.connect((host, port))
-            tm = s.recv(1024)
-            print("The time got from the server is %s" % tm.decode('utf-8'))
-            gps = tm.decode('utf-8')
-            gpsjson = gps.replace("'","\"")
-            data1 = ast.literal_eval(gps)
-            #data2 = json.loads(gps)
-            #Az = data1['Az']
-            print("*****************")
+                if (GPIO.input(buttonPin)== 0):
+                    # Build the message with simulated telemetry values.
+                    #temperature = TEMPERATURE + (random.random() * 15)
+                    #humidity = HUMIDITY + (random.random() * 20)
+                    #host = socket.gethostname()
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    host = "192.168.1.101"
+                    port = 9991
+                    s.connect((host, port))
+                    tm = s.recv(1024)
+                    print("The time got from the server is %s" % tm.decode('utf-8'))
+                    gps = tm.decode('utf-8')
+                    gpsjson = gps.replace("'","\"")
+                    data1 = ast.literal_eval(gps)
+                    #data2 = json.loads(gps)
+                    #Az = data1['Az']
+                    print("*****************")
 
-            #IoT Hub Code
-            msg_txt_formatted = MSG_TXT % (msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct, data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Heading'])
-        #data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Time'], data1['Heading'])
-            message = IoTHubMessage(msg_txt_formatted)
+                    #IoT Hub Code
+                    msg_txt_formatted = MSG_TXT % (msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct, data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Heading'])
+                #data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Time'], data1['Heading'])
+                    message = IoTHubMessage(msg_txt_formatted)
 
-            # Add a custom application property to the message.
-            # An IoT hub can filter on these properties without access to the message body.
-            prop_map = message.properties()
-            #if temperature > 30:
-            #  prop_map.add("temperatureAlert", "true")
-            #else:
-            #  prop_map.add("temperatureAlert", "false")
+                    # Add a custom application property to the message.
+                    # An IoT hub can filter on these properties without access to the message body.
+                    prop_map = message.properties()
+                    #if temperature > 30:
+                    #  prop_map.add("temperatureAlert", "true")
+                    #else:
+                    #  prop_map.add("temperatureAlert", "false")
 
-            # Send the message.
-            print( "Sending message: %s" % message.get_string() )
-            client.send_event_async(message, send_confirmation_callback, None)
-            time.sleep(1)
-            #s.close()
+                    # Send the message.
+                    print( "Sending message: %s" % message.get_string() )
+                    client.send_event_async(message, send_confirmation_callback, None)
+                    time.sleep(1)
+                    #s.close()
+                elif(GPIO.input(buttonPin)== 1):
+                        print("Not connected")
 
     except IoTHubError as iothub_error:
         print ( "Unexpected error %s from IoTHub" % iothub_error )
