@@ -3,7 +3,7 @@ import time
 import sys
 import os
 import obd
-
+from threading import Timer
 
 import iothub_client
 from iothub_client import IoTHubClient, IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult
@@ -16,6 +16,13 @@ import ast
 
 import RPi.GPIO as GPIO
 
+from pyfcm import FCMNotification
+
+push_service = FCMNotification(api_key="AAAAjRp3LxE:APA91bFXjTalD4MZbZy3QvRj7vQehoYiQgjGkuLopceDW2YooKvrpqiZdEuh6tv2V1P7T6rlsR6lHxBp3CqnlYEX1DrNSnIXFGYWZrwIIBPh6MOLgP_jaZCT3vIdyRfRY_qo-Ev3N6eg")
+
+f2=open("/home/pi/Desktop/OBDvoice_1/speakerrecog/speedthresh.txt","r")
+speedval = f2.read()
+f2.close()
 
 buttonPin = 22
 GPIO.setmode(GPIO.BOARD)
@@ -151,8 +158,8 @@ MESSAGE_TIMEOUT = 10000
 # Define the JSON message to send to IoT Hub.
 #TEMPERATURE = 20.0
 #HUMIDITY = 60
-MSG_TXT = "{\"DriverName\": %r,\"OTP\": %r,\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r,\"Az\": %r,\"Ax\": %r,\"Ay\": %r,\"LO\": %r,\"LA\": %r,\"Total_acceleration\": %r,\"Heading\": %r}"
-#MSG_TXT = "{\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r}"
+##MSG_TXT = "{\"DriverName\": %s, \"OTP\": %s,\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r,\"Az\": %r,\"Ax\": %r,\"Ay\": %r,\"LO\": %r,\"LA\": %r,\"Total_acceleration\": %r,\"Heading\": %r}"
+#MSG_TXT = "{\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r}"  
 
 def send_confirmation_callback(message, result, user_context):
     print ( "IoT Hub responded to message with status: %s" % (result) )
@@ -166,7 +173,7 @@ def timelyrunner(timer,uid,otp):
     print("Runner called")
     iothub_client_telemetry_sample_run(uid,otp)
 
-def iothub_client_telemetry_sample_run(uid, otp):
+def iothub_client_telemetry_sample_run(uid,otp):
 
     global msgobdrpm
     global msgobdspeed
@@ -180,13 +187,16 @@ def iothub_client_telemetry_sample_run(uid, otp):
         client = iothub_client_init()
         print ( "IoT Hub device sending periodic messages, press Ctrl-C to exit" )
         #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        MSG_TXT = "{\"DriverName\": " + "\"" + uid + "\""+ ",\"OTP\":" + "\"" + otp + "\""+ ",\"RPM\": %r,\"Speed\": %r,\"Engine_load\": %r,\"Throttle_position\": %r,\"Coolant_temp\": %r,\"Az\": %r,\"Ax\": %r,\"Ay\": %r,\"LO\": %r,\"LA\": %r,\"Total_acceleration\": %r,\"Ht\": %r}"
 
         while True:
                 if(GPIO.input(buttonPin) == 0):
+                    if (msgobdspeed > 50):
+                            sendSpeedPush()
                     #host = socket.gethostname()
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    host = "192.168.1.101"
-                    port = 9991
+                    host = "192.168.1.106"
+                    port = 9998
                     s.connect((host, port))
                     tm = s.recv(1024)
                     print("The time got from the server is %s" % tm.decode('utf-8'))
@@ -197,8 +207,11 @@ def iothub_client_telemetry_sample_run(uid, otp):
                     #Az = data1['Az']
                     print("*****************")
 
+##                    f=open("speedthresh.txt")
+##                            sendSpeedPush()
+
                     #IoT Hub Code
-                    msg_txt_formatted = MSG_TXT % (uid, otp, msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct, data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Heading'])
+                    msg_txt_formatted = MSG_TXT % (msgobdrpm, msgobdspeed ,msgobdel ,msgobdtp ,msgobdct, data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Ht'])
                 #data1['Az'], data1['Ax'], data1['Ay'], data1['Longitude'], data1['Latitude'], data1['Total acceleration'], data1['Time'], data1['Heading'])
                     message = IoTHubMessage(msg_txt_formatted)
 
@@ -225,7 +238,17 @@ def iothub_client_telemetry_sample_run(uid, otp):
         print ( "IoTHubClient sample stopped" )
         f.close()
     except Exception as ex:
-        print("GPS signal issue" + str(ex))
+            print("GPS signal issue" + str(ex))
+            time.sleep(5)
+            iothub_client_telemetry_sample_run(uid, otp)
+        
+
+
+def sendSpeedPush():
+        message_title = "OBD Service"
+        message_body = "Your car has exceeded the speed limit!"
+        result = push_service.notify_topic_subscribers(topic_name="obdpush", message_title=message_title, message_body=message_body)
+
        
 if __name__ == '__main__':
     print ( "IoT Hub take #1 - OBD Code to IoT Hub " )
@@ -234,7 +257,8 @@ if __name__ == '__main__':
     ##if (msgobdrpm >= 0.0):
         ##       print("ID STARTED")
     iothub_client_telemetry_sample_run(sys.argv[1], sys.argv[2])
-    
+    #iothub_client_telemetry_sample_run()
+
 
 
     

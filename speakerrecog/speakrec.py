@@ -48,7 +48,7 @@ def getAudio():
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Say stuff")
-        audio = r.listen(source, 10.0)
+        audio = r.listen(source, 20.0)
     
     data = ""
     try:
@@ -60,7 +60,7 @@ def getAudio():
         return data
     except Exception as e:
         print("Google Speech Recognition could not understand audio"+ str(e))
-        data = "0"
+        return "0"
     except sr.RequestError as e:
         print("Could not request results from Google Speech Recognition service; {0}".format(e))
         return "0"
@@ -80,21 +80,21 @@ def identify_file(subscription_key, file_path, force_short_audio, profile_ids):
         print('Confidence = {0}'.format(identification_response.get_confidence()))
         
         if (identification_response.get_confidence() == "Normal" or "High"):
-            cmd = 'java getuser "'+ identification_response.get_identified_profile_id()+'"'
+            cmd = '/usr/bin/java getuser "'+ identification_response.get_identified_profile_id()+'"'
             print(cmd)
-            u = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
+            u = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True, cwd='/home/pi/Desktop/OBDvoice_1/speakerrecog')
             username = u.stdout.read()
             username = str(username, 'utf-8')
             print(username)
             speak("Hi " + username + "Please say the OTP to start driving")
             spokenotp = getAudio()
             print("OTP" + str(spokenotp))
-            cmd2 = 'java getsession_file "'+spokenotp+'"';
-            otpdata = subprocess.Popen([cmd2], stdout=subprocess.PIPE, shell=True)
+            cmd2 = '/usr/bin/java getsession_file "'+spokenotp+'"';
+            otpdata = subprocess.Popen([cmd2], stdout=subprocess.PIPE, shell=True, cwd='/home/pi/Desktop/OBDvoice_1/speakerrecog')
             mydata =otpdata.stdout.read()
             mydata = str(mydata, 'utf-8')
             print(mydata)
-            f=open("startflag.txt","w")
+            f=open("/home/pi/Desktop/OBDvoice_1/speakerrecog/startflag.txt","w")
             f.write("1")
             f.close()
         
