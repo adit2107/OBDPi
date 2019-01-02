@@ -278,8 +278,8 @@ if __name__ == '__main__':
     ##if (msgobdrpm >= 0.0):
         ##       print("ID STARTED")
     
-    #iothub_client_telemetry_sample_run(sys.argv[1], sys.argv[2])
-    iothub_client_telemetry_sample_run('adit', '0465')
+    iothub_client_telemetry_sample_run(sys.argv[1], sys.argv[2])
+    #iothub_client_telemetry_sample_run('adit', '0465')
 
 
 
